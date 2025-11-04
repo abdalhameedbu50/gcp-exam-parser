@@ -1,0 +1,12 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build', 
+    '-t', 
+    'me-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/parser-service:$COMMIT_SHA', 
+    '.'
+  ]
+images:
+- 'me-central2-docker.pkg.dev/$PROJECT_ID/cloud-run-repo/parser-service:$COMMIT_SHA'
+options:
+  logging: CLOUD_LOGGING_ONLY
