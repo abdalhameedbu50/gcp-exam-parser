@@ -74,3 +74,4 @@ def handle():
     txt_key = base.rsplit(".",1)[0]+"_clean.txt"
     storage_client.bucket(bucket).blob(txt_key).upload_from_string("\n".join(lines))
     return "ok",200
+
