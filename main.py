@@ -91,6 +91,11 @@ def handle():
     bucket, name = extract_event_info(req_json)
     print(f"Parsed bucket={bucket}, name={name}")
 
+    # Validate environment
+    if not BUCKET:
+        print("ERROR: BUCKET environment variable not set")
+        return ("BUCKET environment variable not set", 500)
+
     if not bucket or not name:
         print("ERROR: No bucket/object in event")
         return ("No bucket/object in event", 204)
