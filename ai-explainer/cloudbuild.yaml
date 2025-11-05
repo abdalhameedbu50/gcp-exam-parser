@@ -5,7 +5,7 @@ steps:
         'build',
         '-t',
         'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA',
-        'ai-explainer'
+        './ai-explainer'
       ]
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
