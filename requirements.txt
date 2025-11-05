@@ -1,3 +1,4 @@
 flask==3.0.0
 google-cloud-storage==2.16.0
-gunicorn
+google-auth==2.23.0
+gunicorn==21.2.0
