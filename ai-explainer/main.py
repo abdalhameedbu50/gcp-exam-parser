@@ -1,7 +1,7 @@
 import os, json
 from flask import Flask, request
 from google.cloud import storage, aiplatform
-
+ 
 app = Flask(__name__)
 storage_client = storage.Client()
 
