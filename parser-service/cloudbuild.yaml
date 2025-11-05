@@ -1,12 +1,15 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
-    'build', 
-    '-t', 
-    'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/parser-service:$COMMIT_SHA', 
-    '.'
+    'build',
+    '-t',
+    'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/parser-service:$COMMIT_SHA',
+    'parser-service'
   ]
+
 images:
 - 'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/parser-service:$COMMIT_SHA'
+
 options:
   logging: CLOUD_LOGGING_ONLY
+
