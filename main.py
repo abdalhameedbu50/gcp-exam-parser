@@ -48,9 +48,7 @@ def parse_blocks(raw: str):
     return out
 
 def extract_event_info(request_json):
-    """Supports Eventarc + Pub/Sub payloads"""
-
-    # Eventarc Cloud Storage event format
+    # Eventarc Cloud Storage format
     if "protoPayload" in request_json:
         try:
             bucket = request_json["resource"]["labels"]["bucket_name"]
@@ -59,12 +57,11 @@ def extract_event_info(request_json):
         except:
             pass
 
-    # Pub/Sub event format
+    # Pub/Sub format
     msg = request_json.get("message", {})
     attrs = msg.get("attributes", {})
     bucket = attrs.get("bucketId")
     name = attrs.get("objectId")
-
     return bucket, name
 
 @app.route("/", methods=["POST"])
@@ -80,9 +77,15 @@ def handle():
 
     if not name.startswith("input/"):
         print("Ignored file:", name)
-        return ("Ignored (not in input/ path)", 204)
+        return ("Ignored (not input folder)", 204)
 
-    raw = storage_client.bucket(bucket).blob(name).download_as_text(errors="ignore")
+    blob = storage_client.bucket(bucket).blob(name)
+
+    try:
+        raw = blob.download_as_text()
+    except Exception:
+        raw = blob.download_as_bytes().decode("utf-8", errors="ignore")
+
     parsed = parse_blocks(raw)
     base = name.replace("input/", "clean/")
 
@@ -90,11 +93,13 @@ def handle():
         storage_client.bucket(bucket).blob(base + ".err.txt").upload_from_string("No questions parsed")
         return ("Done - no questions", 200)
 
+    # Save JSON
     json_key = base.rsplit(".", 1)[0] + ".json"
     storage_client.bucket(bucket).blob(json_key).upload_from_string(
         json.dumps(parsed, indent=2), content_type="application/json"
     )
 
+    # Save txt
     lines = []
     for it in parsed:
         lines.append(f"Question {it['id']}:\n{it['question']}\n\nOptions:\n")
