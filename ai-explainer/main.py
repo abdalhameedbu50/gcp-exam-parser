@@ -175,20 +175,13 @@ def parse_text_questions_streaming(blob, max_questions=None):
                 section = section.strip()
                 
                 if section and len(section) > 50:  # Ignore very short sections
-                    # Extract suggested answer
-                    suggested_answer = None
-                    answer_match = re.search(r'Suggested Answer:\s*([A-Z])', section, re.IGNORECASE)
-                    if answer_match:
-                        suggested_answer = answer_match.group(1)
+                    # Parse the section to extract components
+                    parsed = parse_question_section(section)
                     
                     question_count += 1
-                    yield {
-                        "number": question_count,
-                        "question": section,
-                        "suggested_answer": suggested_answer,
-                        "options": [],
-                        "raw_data": section
-                    }
+                    parsed["number"] = question_count
+                    
+                    yield parsed
                     
                     # Stop if we've reached the max
                     if max_questions and question_count >= max_questions:
@@ -198,19 +191,10 @@ def parse_text_questions_streaming(blob, max_questions=None):
         # Process any remaining content in buffer
         if buffer.strip() and len(buffer.strip()) > 50:
             section = buffer.strip()
-            suggested_answer = None
-            answer_match = re.search(r'Suggested Answer:\s*([A-Z])', section, re.IGNORECASE)
-            if answer_match:
-                suggested_answer = answer_match.group(1)
-            
+            parsed = parse_question_section(section)
             question_count += 1
-            yield {
-                "number": question_count,
-                "question": section,
-                "suggested_answer": suggested_answer,
-                "options": [],
-                "raw_data": section
-            }
+            parsed["number"] = question_count
+            yield parsed
     
     except Exception as e:
         print(f"❌ Error during streaming: {e}")
@@ -218,6 +202,54 @@ def parse_text_questions_streaming(blob, max_questions=None):
         raise
     
     print(f"✅ Finished streaming. Total questions found: {question_count}")
+
+def parse_question_section(section):
+    """
+    Parse a single question section to extract:
+    - Question text
+    - Options (A, B, C, D)
+    - Suggested Answer
+    """
+    # Extract suggested answer (look for pattern like "Suggested Answer: C")
+    suggested_answer = None
+    answer_match = re.search(r'Suggested Answer:\s*([A-Z])', section, re.IGNORECASE)
+    if answer_match:
+        suggested_answer = answer_match.group(1)
+        # Remove the suggested answer line from section
+        section = re.sub(r'\n?Suggested Answer:.*', '', section, flags=re.IGNORECASE)
+    
+    # Extract question number and text
+    question_text = section
+    question_number_match = re.match(r'Question\s+(\d+):\s*', section)
+    if question_number_match:
+        # Remove "Question X:" prefix
+        question_text = section[question_number_match.end():]
+    
+    # Extract options (A. B. C. D.)
+    options = {}
+    # Look for patterns like "A. text" or "A) text"
+    option_pattern = r'([A-Z])[.)\s]+([^\n]+?)(?=\s*[A-Z][.)\s]+|\s*$|Suggested Answer)'
+    matches = re.finditer(option_pattern, section, re.MULTILINE | re.DOTALL)
+    
+    for match in matches:
+        option_letter = match.group(1)
+        option_text = match.group(2).strip()
+        if option_text:  # Only add non-empty options
+            options[option_letter] = option_text
+    
+    # If we found options, remove them from question text to get clean question
+    if options:
+        # Find where options start
+        first_option_match = re.search(r'\n\s*[A-Z][.)\s]+', question_text)
+        if first_option_match:
+            question_text = question_text[:first_option_match.start()].strip()
+    
+    return {
+        "question": question_text.strip(),
+        "suggested_answer": suggested_answer,
+        "options": options,
+        "raw_data": section
+    }
 
 def generate_explanation_batch(questions_batch):
     """
@@ -230,58 +262,67 @@ def generate_explanation_batch(questions_batch):
         question_num = q_data["number"]
         question = q_data["question"]
         suggested_answer = q_data["suggested_answer"]
-        options = q_data.get("options", [])
+        options = q_data.get("options", {})
         
-        # Format question text
-        if isinstance(question, str):
-            question_text = question[:500] + "..." if len(question) > 500 else question
-        else:
-            question_text = str(question)[:500]
+        # Format question text (don't truncate)
+        question_text = question if isinstance(question, str) else str(question)
         
-        # Format options if available
+        # Format options
         options_text = ""
         if options:
-            options_text = "\n\nOptions:\n"
-            if isinstance(options, dict):
-                for key, value in options.items():
-                    options_text += f"  {key}: {value}\n"
-            elif isinstance(options, list):
-                for i, opt in enumerate(options):
-                    options_text += f"  {chr(65+i)}: {opt}\n"
+            options_text = "\n\nOptions:"
+            for key in sorted(options.keys()):
+                value = options[key]
+                # Truncate very long options
+                if len(value) > 200:
+                    value = value[:200] + "..."
+                options_text += f"\n{key}. {value}"
         
-        # TODO: Replace with actual AI API call
+        # Build the explanation
         explanation = f"""{'=' * 80}
 Question {question_num}
 {'=' * 80}
 
 {question_text}{options_text}
 
-Suggested Answer: {suggested_answer if suggested_answer else "Not provided"}
-
-EXPLANATION:
-[This will be replaced with actual AI-generated explanation]
-
-The correct answer is {suggested_answer} because:
-1. [Reason 1]
-2. [Reason 2]
-3. [Reason 3]
-
-Key Concepts:
-- Concept 1: Understanding of core principles
-- Concept 2: Application of best practices
-- Concept 3: Common pitfalls to avoid
-
-Why Other Options Are Incorrect:
-- Other options fail because...
-
-Reference Topics:
-- Topic 1
-- Topic 2
-- Topic 3
+Suggested Answer: {suggested_answer if suggested_answer else "Not found"}
 
 {'=' * 80}
+EXPLANATION:
+{'=' * 80}
 
-"""
+[This will be replaced with actual AI-generated explanation]
+
+Analysis:
+The correct answer is {suggested_answer if suggested_answer else "[answer]"}.
+
+Key Reasoning:
+• Point 1: [Detailed explanation of why this answer is correct]
+• Point 2: [Additional context and best practices]
+• Point 3: [Common scenarios where this applies]
+
+Why This Matters:
+[Explanation of the underlying concept and its importance]
+
+Common Mistakes:
+• Mistake 1: [What people often get wrong]
+• Mistake 2: [Misconceptions to avoid]
+
+Related Concepts:
+• Concept 1: [Related topic or service]
+• Concept 2: [Additional knowledge area]
+• Concept 3: [Best practices]
+
+Why Other Options Are Incorrect:"""
+        
+        # Add analysis for other options if available
+        if options and suggested_answer:
+            for key in sorted(options.keys()):
+                if key != suggested_answer:
+                    explanation += f"\n• Option {key}: [Why this is incorrect]"
+        
+        explanation += f"\n\n{'=' * 80}\n\n"
+        
         explanations.append(explanation)
     
     return explanations
