@@ -1,12 +1,12 @@
 steps:
-  # 1️⃣ Build Docker image for the open LLM service
+  # 1️⃣ Build Docker image from the open-llm-service folder
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'build',
         '-t',
         'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/open-llm-service:$COMMIT_SHA',
-        './'
+        './open-llm-service'
       ]
 
   # 2️⃣ Push image to Artifact Registry
@@ -36,7 +36,6 @@ steps:
 images:
   - 'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/open-llm-service:$COMMIT_SHA'
 
-# ✅ Options: handle logging + service account rule
 options:
   logging: CLOUD_LOGGING_ONLY
   defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
