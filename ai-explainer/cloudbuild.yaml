@@ -1,33 +1,38 @@
 steps:
+  # 1️⃣ Build the image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'build',
         '-t',
-        'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA',
         './ai-explainer'
       ]
 
+  # 2️⃣ Push the image to Artifact Registry (us-central1)
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'push',
-        'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA'
+        'us-central1-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA'
       ]
 
+  # 3️⃣ Deploy to Cloud Run (us-central1)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       [
-        'run','deploy','ai-explainer',
-        '--image=me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA',
-        '--region=me-central2',
+        'run', 'deploy', 'ai-explainer',
+        '--image=us-central1-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA',
+        '--region=us-central1',
+        '--service-account=service-account-ai-explain@${PROJECT_ID}.iam.gserviceaccount.com',
+        '--set-env-vars', 'BUCKET=dumps-parser-files,VERTEX_AI_LOCATION=us-central1',
         '--allow-unauthenticated',
         '--quiet'
       ]
 
 images:
-  - 'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloudbuild/ai-explainer:$COMMIT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY
