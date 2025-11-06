@@ -255,7 +255,7 @@ def parse_question_section(section):
     
     for line in lines:
         # Check if line starts with an option letter (A. B. C. D.)
-        option_match = re.match(r'^([A-D])[.)\s]+(.*)
+       option_match = re.match(r'^([A-D])[.)\s]+(.*)$', line.strip())
 
 def generate_explanation_batch(questions_batch):
     """
