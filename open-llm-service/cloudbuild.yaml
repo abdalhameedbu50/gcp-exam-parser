@@ -36,6 +36,8 @@ steps:
 images:
   - 'me-central2-docker.pkg.dev/$PROJECT_ID/cloudbuild/open-llm-service:$COMMIT_SHA'
 
+# ✅ Options: handle logging + service account rule
 options:
   logging: CLOUD_LOGGING_ONLY
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
   machineType: E2_HIGHCPU_8
