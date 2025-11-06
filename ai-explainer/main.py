@@ -38,7 +38,15 @@ except Exception as e:
     print(traceback.format_exc())
 
 def extract_event_info(request_json):
-    """Extract bucket and file name from Eventarc or Pub/Sub format."""
+    """Extract bucket and file name from Eventarc, Pub/Sub, or Audit Log event."""
+    # Case 1: Direct CloudEvent (GCS trigger)
+    if "bucket" in request_json and "name" in request_json:
+        bucket = request_json["bucket"]
+        name = request_json["name"]
+        print(f"✅ Extracted (CloudEvent): bucket={bucket}, name={name}")
+        return bucket, name
+
+    # Case 2: Audit Log format
     if "protoPayload" in request_json:
         try:
             bucket = request_json.get("resource", {}).get("labels", {}).get("bucket_name")
@@ -50,15 +58,16 @@ def extract_event_info(request_json):
             return bucket, name
         except Exception as e:
             print(f"⚠️ Failed parsing Audit Log event: {e}")
-    
+
+    # Case 3: Pub/Sub event
     msg = request_json.get("message", {})
     attrs = msg.get("attributes", {})
     bucket = attrs.get("bucketId")
     name = attrs.get("objectId")
-    
+
     if bucket or name:
         print(f"✅ Extracted (Pub/Sub): bucket={bucket}, name={name}")
-    
+
     return bucket, name
 
 def detect_file_format(filename):
