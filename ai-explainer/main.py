@@ -13,7 +13,7 @@ import time
 app = Flask(__name__)
 BUCKET = os.environ.get("BUCKET")
 BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "3"))
-MAX_QUESTIONS = int(os.environ.get("MAX_QUESTIONS", "1000"))
+MAX_QUESTIONS = int(os.environ.get("MAX_QUESTIONS", "2000"))
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT")
 LOCATION = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
 
