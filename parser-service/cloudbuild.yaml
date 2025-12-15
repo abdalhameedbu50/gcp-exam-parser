@@ -10,3 +10,6 @@ steps:
 images:
 - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloudbuild/parser-service:$COMMIT_SHA'
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+  logsBucket: 'gs://mc-abdulhmeed-bk-sandbox1-build-logs'  # ADD THIS LINE
