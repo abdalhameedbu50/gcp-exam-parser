@@ -12,4 +12,3 @@ images:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  logsBucket: 'gs://mc-abdulhmeed-bk-sandbox1-build-logs'  # ADD THIS LINE
